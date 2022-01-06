@@ -24,5 +24,6 @@ jobs:
           echo CONTENTFUL_ACCESS_TOKEN=\'"$CONTENTFUL_ACCESS_TOKEN"\' >> .env
           echo CONTENTFUL_SPACE_ID=\'"$CONTENTFUL_SPACE_ID "\' >> .env
           echo MAILCHIMP_ENDPOINT=\'"$MAILCHIMP_ENDPOINT"\' >> .env
+          ls -la
 
       - run: npm run build
