@@ -21,9 +21,8 @@ jobs:
 
       - name: Create env file for ContentfulCMS
         run: |
-          echo CONTENTFUL_ACCESS_TOKEN=\'"$CONTENTFUL_ACCESS_TOKEN"\' >> .env
-          echo CONTENTFUL_SPACE_ID=\'"$CONTENTFUL_SPACE_ID "\' >> .env
-          echo MAILCHIMP_ENDPOINT=\'"$MAILCHIMP_ENDPOINT"\' >> .env
-          ls -la
+          echo CONTENTFUL_ACCESS_TOKEN=\'"$CONTENTFUL_ACCESS_TOKEN"\' >> .env.production
+          echo CONTENTFUL_SPACE_ID=\'"$CONTENTFUL_SPACE_ID "\' >> .env.production
+          echo MAILCHIMP_ENDPOINT=\'"$MAILCHIMP_ENDPOINT"\' >> .env.production
 
       - run: npm run build
