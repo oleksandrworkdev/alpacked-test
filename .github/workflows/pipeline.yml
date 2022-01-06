@@ -69,9 +69,10 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: website
+          path: public
 
       - name: test artifact
-        run: ls -lh
+        run: ls -R public
 
       - uses: pulumi/actions@v3
         with:
