@@ -70,3 +70,5 @@ yarn-error.log
 
 .env*
 contentful-import-error-log-*
+
+**/false
