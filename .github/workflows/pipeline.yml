@@ -20,6 +20,11 @@ jobs:
         run: npm ci
 
       - name: Create env file for ContentfulCMS
+        env:
+          CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
+          CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
+          MAILCHIMP_ENDPOINT: ${{ secrets.MAILCHIMP_ENDPOINT }}
+
         run: |
           echo CONTENTFUL_ACCESS_TOKEN=\'"$CONTENTFUL_ACCESS_TOKEN"\' >> .env
           echo CONTENTFUL_SPACE_ID=\'"$CONTENTFUL_SPACE_ID "\' >> .env
