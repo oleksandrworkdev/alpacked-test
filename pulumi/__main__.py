@@ -1,9 +1,8 @@
-import json
 import mimetypes
 import os
 
 from pulumi import export, FileAsset
-from pulumi_aws import s3
+from pulumi_aws import s3, cloudfront, iam
 
 
 def uploadDirectory(path, bucket_name):
@@ -18,35 +17,81 @@ def uploadDirectory(path, bucket_name):
         content_type=mime_type)
 
 
-web_bucket = s3.Bucket('s3-website-bucket',
-  website=s3.BucketWebsiteArgs(
-      index_document="index.html",
-      error_document="404.html",
-  ))
+web_bucket = s3.Bucket(
+  's3-website-bucket',
+  acl="private",
+)
 
 content_dir = "../public"
 uploadDirectory(content_dir, web_bucket.id)
 
-def public_read_policy_for_bucket(bucket_name):
-  return json.dumps({
-    "Version": "2012-10-17",
-    "Statement": [{
-        "Effect": "Allow",
-        "Principal": "*",
-        "Action": [
-            "s3:GetObject"
-        ],
-        "Resource": [
-            f"arn:aws:s3:::{bucket_name}/*",
-        ]
-    }]
-  })
-
 bucket_name = web_bucket.id
+cf_origin_access_identity = cloudfront.OriginAccessIdentity("website-origin-access-identity", comment="Identity")
+
+def s3_policy_for_bucket(bucket_name):
+    return iam.get_policy_document(statements=[iam.GetPolicyDocumentStatementArgs(
+    actions=["s3:GetObject"],
+    resources=[f"arn:aws:s3:::{bucket_name}/*"],
+    principals=[iam.GetPolicyDocumentStatementPrincipalArgs(
+        type="AWS",
+        identifiers=[cf_origin_access_identity.iam_arn],
+    )],
+)]).json
+
 bucket_policy = s3.BucketPolicy("bucket-policy",
   bucket=bucket_name,
-  policy=bucket_name.apply(public_read_policy_for_bucket))
+  policy=bucket_name.apply(s3_policy_for_bucket))
+
+s3_origin_id = "myS3Origin"
+s3_distribution = cloudfront.Distribution("s3Distribution",
+    origins=[cloudfront.DistributionOriginArgs(
+        domain_name=web_bucket.bucket_regional_domain_name,
+        origin_id=s3_origin_id,
+        s3_origin_config=cloudfront.DistributionOriginS3OriginConfigArgs(
+            origin_access_identity=cf_origin_access_identity.cloudfront_access_identity_path
+        )
+    )],
+    enabled=True,
+    default_root_object="index.html",
+    default_cache_behavior=cloudfront.DistributionDefaultCacheBehaviorArgs(
+        allowed_methods=[
+            "DELETE",
+            "GET",
+            "HEAD",
+            "OPTIONS",
+            "PATCH",
+            "POST",
+            "PUT",
+        ],
+        cached_methods=[
+            "GET",
+            "HEAD",
+        ],
+        target_origin_id=s3_origin_id,
+        forwarded_values=cloudfront.DistributionDefaultCacheBehaviorForwardedValuesArgs(
+            query_string=False,
+            cookies=cloudfront.DistributionDefaultCacheBehaviorForwardedValuesCookiesArgs(
+                forward="none",
+            ),
+        ),
+        viewer_protocol_policy="allow-all",
+        min_ttl=0,
+        default_ttl=3600,
+        max_ttl=86400,
+    ),
+    tags={
+        "Environment": "production",
+    },
+    restrictions=cloudfront.DistributionRestrictionsArgs(
+      geo_restriction=cloudfront.DistributionRestrictionsGeoRestrictionArgs(
+        restriction_type="none",
+      )
+    ),
+    viewer_certificate=cloudfront.DistributionViewerCertificateArgs(
+        cloudfront_default_certificate=True,
+    ))
+
 
 # Export the name of the bucket
 export('bucket_name', web_bucket.id)
-export('website_url', web_bucket.website_endpoint)
+export('cf_distribution_url', s3_distribution.domain_name)

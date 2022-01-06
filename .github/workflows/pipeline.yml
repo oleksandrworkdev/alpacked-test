@@ -71,9 +71,6 @@ jobs:
           name: website
           path: public
 
-      - name: test artifact
-        run: ls -R public
-
       - uses: pulumi/actions@v3
         with:
           command: preview
